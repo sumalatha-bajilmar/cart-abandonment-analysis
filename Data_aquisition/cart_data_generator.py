@@ -81,12 +81,12 @@ class ActivityLogGenerator:
             'device_type': random.choice(self.devices),
             'region': random.choice(self.regions),
             'ip_address': fake.ipv4(),
+            'user_email':  fake.email()
         }
         
         # Add activity-specific details
         if activity_type == 'login':
             record['login_method'] = random.choice(['email', 'google', 'facebook', 'apple'])
-            record['user_email'] = fake.email()
             if status == 'failed':
                 record['failure_reason'] = random.choice(['invalid_credentials', 'account_locked', 'mfa_failed'])
         
@@ -98,7 +98,7 @@ class ActivityLogGenerator:
             record['product_name'] = f"{fake.word().title()} {fake.word().title()}"
             record['category'] = random.choice(self.categories)
             record['quantity'] = random.randint(1, 5)
-            record['product_price'] = round(random.uniform(10, 500), 2)
+            record['cart_price'] = round(random.uniform(10, 500), 2)
             #record['cart_id'] = str(uuid.uuid4())
             if status == 'failed':
                 record['failure_reason'] = random.choice(['product_not_found', 'out_of_stock', 'invalid_quantity'])
@@ -106,17 +106,18 @@ class ActivityLogGenerator:
         elif activity_type == 'cart-update':
             record['product_id'] = str(uuid.uuid4())
             record['product_name'] = f"{fake.word().title()} {fake.word().title()}"
-            record['quantity'] = random.randint(-1, 5)
-            #record['new_quantity'] = random.randint(1, 5)
+            record['quantity'] = random.randint(1, 5)
+            #record['new_quantity'] = random.randint(0, 5)
             #record['cart_id'] = str(uuid.uuid4())
-            record['product_price'] = round(random.uniform(10, 500), 2)
+            record['cart_price'] = round(random.uniform(10, 500), 2)
             if status == 'failed':
                 record['failure_reason'] = random.choice(['insufficient_stock', 'invalid_quantity', 'cart_expired'])
         
         elif activity_type == 'cart-remove':
             record['product_id'] = str(uuid.uuid4())
             record['product_name'] = f"{fake.word().title()} {fake.word().title()}"
-            record['quantity_after_removal'] = random.randint(0, 3)
+            record['quantity'] = random.randint(0, 3)
+            record['cart_price'] = round(random.uniform(10, 500), 2)
             #record['cart_id'] = str(uuid.uuid4())
         
         elif activity_type == 'checkout':
