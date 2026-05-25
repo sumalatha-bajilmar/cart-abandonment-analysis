@@ -112,7 +112,8 @@ def ecom_cart_abandonment_pipeline():
             (user_summary["total_quantity"] > 1) & (user_summary["total_cart_price"] >= 1) & (user_summary["total_cart_price"] <= 100),
             (user_summary["total_quantity"] > 1) & (user_summary["total_cart_price"] > 100)
         ]
-        choices = ["BucketA", "BucketB"]
+        # customer buckets for 5% and 10% discount codes
+        choices = ["Bucket5", "Bucket10"]
 
         user_summary["cart_status"] = np.where(user_summary["total_quantity"] > 1, "Abandoned", "Active")
         user_summary["price_bucket"] = np.select(conditions, choices, default="Not_Eligible")
