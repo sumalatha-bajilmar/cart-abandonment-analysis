@@ -1,3 +1,5 @@
+---- Final re-usable
+
 from datetime import datetime, timedelta
 import logging
 import io
@@ -42,18 +44,36 @@ def extract_customer_data() -> pd.DataFrame:
     """
 
     customer_bucket = Variable.get("s3_customer_bucket")
-    customer_key = "prod/customer_master.json"
+    customer_folder_prefix = "prod/"
         
-    logging.info(f"Fetching customer records from s3://{customer_bucket}/{customer_key}")
+    logging.info(f"Fetching customer records from s3://{customer_bucket}/{customer_folder_prefix}")
     s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
+    
+    # 2. Extract ALL file keys existing inside that folder prefix
+    all_keys = s3_hook.list_keys(bucket_name=customer_bucket, prefix=customer_folder_prefix)
+    
+    if not all_keys:
+        raise AirflowException(f"Target folder directory is empty or missing: s3://{customer_bucket}/{customer_folder_prefix}")
         
-    if not s3_hook.check_for_key(key=customer_key, bucket_name=customer_bucket):
-        raise AirflowException(f"Missing master dimension table metadata constraint: {customer_key}")
-            
-    file_obj = s3_hook.get_key(key=customer_key, bucket_name=customer_bucket)
-    content = file_obj.get()["Body"].read().decode("utf-8")
+    # 3. Filter out any accidental folder metadata markers (keys ending with '/')
+    valid_file_keys = [k for k in all_keys if not k.endswith("/")]
+    
+    logging.info(f"Discovered {len(valid_file_keys)} files to process inside the folder.")
+    
+    # 4. Loop through and extract every file within the directory
+    df_list = []
+    for key in valid_file_keys:
+        logging.info(f"Extracting file: s3://{customer_bucket}/{key}")
+        file_obj = s3_hook.get_key(key=key, bucket_name=customer_bucket)
+        content = file_obj.get()["Body"].read().decode("utf-8")
         
-    return pd.read_json(io.StringIO(content), lines=True)
+        # Use lines=True if your files are JSON Lines formats, or lines=False for standard JSON arrays
+        current_df = pd.read_json(io.StringIO(content), lines=True)
+        df_list.append(current_df)
+        
+    # 5. Stack all extracted files together seamlessly
+    combined_customer_df = pd.concat(df_list, ignore_index=True)
+    return combined_customer_df
 
 
 def identify_abandoned_cart() -> pd.DataFrame:
