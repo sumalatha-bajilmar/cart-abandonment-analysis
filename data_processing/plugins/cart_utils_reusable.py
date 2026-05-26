@@ -38,7 +38,7 @@ def extract_cart_activity(logical_date=None, **context) -> pd.DataFrame:
         return pd.concat(df_list, ignore_index=True)
 
     
-def extract_customer_data() -> pd.DataFrame:
+def read_customer_data() -> pd.DataFrame:
     """
     Fetches the primary dimensional profile file containing master customer records.
     """
