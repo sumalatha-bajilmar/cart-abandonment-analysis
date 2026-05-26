@@ -5,10 +5,11 @@ import logging
 import io
 import pandas as pd
 import numpy as np
-
+from airflow.sdk import Variable
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.exceptions import AirflowException
 
 AWS_CONN_ID = "aws_default"
-
 
 
 def extract_cart_activity(logical_date=None, **context) -> pd.DataFrame:
