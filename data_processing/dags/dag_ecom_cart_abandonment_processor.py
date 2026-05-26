@@ -12,11 +12,11 @@ import pandas as pd
 import numpy as np
 
 from airflow.decorators import dag, task
-from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowException
 
-from cart_utils import (read_customer_data, identify_abandoned_cart)
+from utils.cart_utils_reusable import (read_customer_data, identify_abandoned_cart)
 
 AWS_CONN_ID = "aws_default"
 
