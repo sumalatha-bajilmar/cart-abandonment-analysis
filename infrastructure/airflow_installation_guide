@@ -1,0 +1,75 @@
+Reference document: https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#running-airflow-in-docker
+
+Installation commands:
+
+
+# 1. Update the local package index
+sudo apt-get update -y
+
+
+# 2. Install Docker and Docker Compose via native Ubuntu mirrors
+sudo apt-get install -y docker.io docker-compose-v2
+
+
+# 3. Start and enable the Docker daemon service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+
+# 4. Enable non-sudo execution rights
+sudo usermod -aG docker $USER
+newgrp docker
+
+
+# 5. Verifying the versions
+docker --version
+docker compose version
+
+
+# 6. Airflow installations start
+mkdir -p ~/airflow-docker && cd ~/airflow-docker
+mkdir -p ./dags ./logs ./plugins ./config
+
+
+# 7. Downloading docker compose for Airflow
+curl -LfO 'https://airflow.apache.org/docs/apache-airflow/3.2.1/docker-compose.yaml' -o docker-compose.yaml
+
+
+# 8. Install required packages
+docker compose run airflow-cli airflow config list
+
+
+# 9. Append the AWS Systems Manager Secrets Backend settings to .env file to read credentials and variables from SSM
+echo 'AIRFLOW__SECRETS__BACKEND="airflow.providers.amazon.aws.secrets.systems_manager.SystemsManagerBackend"' >> .env
+echo 'AIRFLOW__SECRETS__BACKEND_KWARGS="{\"connections_prefix\": \"/airflow/connections\", \"variables_prefix\": \"/airflow/variables\"}"' >> .env
+
+
+# 10. Initialize database
+docker compose up airflow-init
+
+
+# 11. launch all the containers
+docker compose up -d
+
+
+# restarting docker compose
+cd ~/airflow-docker
+docker compose down -- if containers are already running
+docker compose up -d
+
+
+# -------------------- cleaning up -------------------- 
+cd ~/airflow-docker
+
+# Stop all containers, remove networks, and destroy any cached config states
+docker compose down --volumes --rmi all
+docker compose down --volumes --remove-orphans
+
+# Clear any lingering internal Docker build/config caches
+docker builder prune -f
+
+# Re-run initialization to write the new parameters to DB metadata schema
+docker compose up airflow-init
+
+# Re-launch all the containers
+docker compose up -d
