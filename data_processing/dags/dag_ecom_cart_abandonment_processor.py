@@ -120,6 +120,7 @@ def ecom_cart_abandonment_pipeline():
 
         # 8. Enrich transactional metrics with core metadata profile records
         final_report = df_customers.merge(user_summary, on="user_id", how="inner")
+        final_report = final_report["user_id","name","user_email","phone_number","cart_status","price_bucket","total_quantity","total_cart_price"]
 
         # 9. Load compiled report dataset directly to S3 partitioned analytics storage layer
         
