@@ -5,8 +5,8 @@ The project also analyses the abandoned carts and derives insights such as which
 
 
 Tech-stack used:
-AWS Lambda function for sample data generation using faker.
-EC2 instance with Ubuntu OS as infrastructure to host the airflow platform
-Airflow is installed and managed on EC2 instance using Docker and Docker compose
-AWS S3 buckets are used to store the data in medallion way. One path each for raw data, aggregated and segmented data and analytical data.
+. AWS Lambda function for sample data generation using faker.
+. EC2 instance with Ubuntu OS as infrastructure to host the airflow platform
+. Airflow is installed and managed on EC2 instance using Docker and Docker compose
+. AWS S3 buckets are used to store the data in medallion way. One path each for raw data, aggregated and segmented data and analytical data.
 
