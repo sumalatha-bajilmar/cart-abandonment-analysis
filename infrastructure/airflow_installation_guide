@@ -57,6 +57,9 @@ cd ~/airflow-docker
 docker compose down -- if containers are already running
 docker compose up -d
 
+# Restarting required Airflow services
+docker compose restart airflow-scheduler airflow-apiserver
+
 
 # -------------------- cleaning up -------------------- 
 cd ~/airflow-docker
@@ -73,3 +76,19 @@ docker compose up airflow-init
 
 # Re-launch all the containers
 docker compose up -d
+
+
+# -------------------- EC2 User data for memory management --------------------
+
+#!/bin/bash
+
+# stopping docker from auto starting to prevent memory running out
+systemctl stop docker docker.socket
+systemctl disable docker docker.socket
+
+# creating swap memory
+dd if=/dev/zero of=/swapfile bs=1M count=4096
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
