@@ -6,12 +6,14 @@ Description: End-to-end analytics pipeline resolving parameters through AWS SSM.
 """
 
 from datetime import datetime, timedelta
+import pendulum
 import logging
 import io
 import pandas as pd
 import numpy as np
 
 from airflow.decorators import dag, task
+#from airflow.models import Variable
 from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowException
@@ -33,8 +35,8 @@ default_args = {
     dag_id="ecom_cart_abandonment_processor",
     default_args=default_args,
     description="Process e-commerce cart activity logs and customer segmentation",
-    schedule_interval="@daily",
-    start_date=datetime(2026, 5, 25),
+    schedule="@daily",
+    start_date=datetime(2026, 5, 28),
     catchup=False,
     max_active_runs=1,
     tags=["ecommerce", "ssm", "parquet", "analytics", "promotional"],
@@ -66,6 +68,10 @@ def ecom_cart_abandonment_pipeline():
             logging.warning("Input datasets are incomplete or missing. Halting pipeline execution downstream.")
             return None
 
+        active_date = logical_date if logical_date is not None else datetime.now(pendulum.UTC)
+        execution_date_str = active_date.strftime("%Y%m%d")
+
+
         # 1. Enforce sorting constraints for chronological calculations
         df = df_cart.sort_values(by=["user_id", "product_id", "timestamp"]).copy()
 
@@ -93,7 +99,7 @@ def ecom_cart_abandonment_pipeline():
 
         # 5. Compute true quantities (Treat latest remove/update as reset quantity and price)
         valid_window_df["calculated_qty"] = valid_window_df["quantity"]
-        valid_window_df["total_product_price"] = valid_window_df["product_price"]
+        valid_window_df["total_product_price"] = valid_window_df["cart_price"]
 
         # 6. Aggregate to calculate the final volumes per product, then global user totals
         product_summary = (
@@ -119,13 +125,12 @@ def ecom_cart_abandonment_pipeline():
         user_summary["price_bucket"] = np.select(conditions, choices, default="Not_Eligible")
 
         # 8. Enrich transactional metrics with core metadata profile records
-        final_report = df_customers.merge(user_summary, on="user_id", how="inner")
-        final_report = final_report["user_id","name","user_email","phone_number","cart_status","price_bucket","total_quantity","total_cart_price"]
+        final_report_cust = df_customers.merge(user_summary, on="user_id", how="inner")
+        final_report = final_report_cust[["user_id","name","user_email","phone_number","total_quantity","total_cart_price","cart_status","price_bucket"]]
 
         # 9. Load compiled report dataset directly to S3 partitioned analytics storage layer
         
         target_bucket = Variable.get("s3_cart_bucket")
-        execution_date_str = logical_date.strftime("%Y%m%d")
         target_key = f"promotional/{execution_date_str}/aggregated_customer_segments.parquet"
         
         logging.info(f"Uploading final analytical reports to s3://{target_bucket}/{target_key}")
