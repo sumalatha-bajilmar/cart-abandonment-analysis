@@ -129,7 +129,7 @@ def identify_abandoned_cart() -> pd.DataFrame:
     return abandoned_cart_df
 
 
-def merge_cart_records_for_analysis() -> pd.DataFrame:
+def merge_cart_records_for_analysis(logical_date=None, **context) -> pd.DataFrame:
     """
     Merges abandoned cart records with remaining records safely,
     even if one or both source DataFrames are completely empty.
