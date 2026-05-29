@@ -10,6 +10,7 @@ import logging
 import io
 import pandas as pd
 import numpy as np
+import os
 
 from airflow.decorators import dag, task
 #from airflow.models import Variable
@@ -58,11 +59,10 @@ def ecom_cart_trend_analysis_pipeline():
         
 
     @task()
-    def aggregate_data() -> str:
+    def aggregate_data(df_cart: pd.DataFrame, logical_date=None, **context) -> str:
         """
         Calculates window-bounded activity loops, combines cart quantity and price
         """
-        df_cart = extract_cart_log ()
         if df_cart.empty:
             logging.warning("Input dataset is incomplete or missing. Halting pipeline execution downstream.")
             return None
@@ -158,10 +158,11 @@ def ecom_cart_trend_analysis_pipeline():
     # Declare runtime pipeline tasks
     cart_data = extract_cart_log()
     customer_data = extract_customer_data()
-    final_cart_data_path = aggregate_data()
+    #final_cart_data_path = aggregate_data()
+    final_cart_data_path = aggregate_data(df_cart=cart_data)
     
     # TaskFlow API to form execution sequence based on dependency variables automatically
-    merge_and_store(df_customers=customer_data, cart_file_path: final_cart_data_path)
+    merge_and_store(df_customers=customer_data, cart_file_path=final_cart_data_path)
 
 # Instantiate the final production pipeline
 ecom_cart_trend_analysis = ecom_cart_trend_analysis_pipeline()
