@@ -127,3 +127,60 @@ def identify_abandoned_cart() -> pd.DataFrame:
     abandoned_cart_df = abandoned_actions_df.drop(columns=drop_cols, errors="ignore")
     
     return abandoned_cart_df
+
+
+def merge_cart_records_for_analysis() -> pd.DataFrame:
+    """
+    Merges abandoned cart records with remaining records safely,
+    even if one or both source DataFrames are completely empty.
+    """
+    logging.info("Starting cart data merge loop...")
+
+    all_activity_df = extract_cart_activity()
+
+    # Case 1: No overall source activity data found at all
+    if all_activity_df is None or all_activity_df.empty:
+        logging.warning("Source activity dataframe is empty. Cannot determine remaining entries.")
+        return pd.DataFrame()
+
+    abandoned_cart_df = identify_abandoned_cart()
+
+    # Case 2: Source activity exists, but NO records are classified as abandoned
+    if abandoned_cart_df is None or abandoned_cart_df.empty:
+        logging.info("Zero abandoned records found today. Processing all active records as False.")
+        target_activities = ["cart-add", "cart-update", "cart-remove"]
+        remaining_df = all_activity_df[all_activity_df['activity_type'].isin(target_activities)].copy()
+        remaining_df['abandoned'] = False
+        return remaining_df
+
+    # Case 3: Both source DataFrames are completely empty
+    if (all_activity_df is None or all_activity_df.empty) and (abandoned_cart_df is None or abandoned_cart_df.empty):
+        logging.warning("Both incoming datasets are empty. Returning empty trend dataframe.")
+        return pd.DataFrame()
+
+    # Case 4: Standard Scenario (Both datasets contain live records)
+    abandoned_cart_df['abandoned'] = True
+
+    target_activities = ["cart-add", "cart-update", "cart-remove"]
+    
+    # Secure string token stitching prevents parsing crashes
+    abandoned_keys = (
+        abandoned_cart_df['user_id'].astype(str) + "_" + 
+        abandoned_cart_df['activity_type'].astype(str)
+    )
+    all_keys = (
+        all_activity_df['user_id'].astype(str) + "_" + 
+        all_activity_df['activity_type'].astype(str)
+    )
+
+    activity_mask = all_activity_df['activity_type'].isin(target_activities)
+    abandoned_mask = all_keys.isin(abandoned_keys)
+    
+    remaining_df = all_activity_df[activity_mask & ~abandoned_mask].copy()
+    remaining_df['abandoned'] = False
+
+    # Vertically stack rows
+    master_trend_df = pd.concat([abandoned_cart_df, remaining_df], ignore_index=True)
+    logging.info(f"Merge operation succeeded. Final data rows: {len(master_trend_df)}")
+
+    return master_trend_df
