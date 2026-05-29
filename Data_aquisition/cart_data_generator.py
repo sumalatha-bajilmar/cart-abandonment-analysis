@@ -171,7 +171,7 @@ def lambda_handler(event, context):
         customer_master, cart_logs = pipeline.generate_pipeline_datasets()
         
         # --- PATH 1: Upload Customer Master Dimension (Saved as clean JSON Array) ---
-        master_key = f"customer_master_{batch_id}.json"
+        master_key = f"prod/customer_master_{batch_id}.json"
         s3.put_object(
             Bucket=customer_bucket,
             Key=master_key,
