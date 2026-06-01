@@ -18,7 +18,7 @@ from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowException
 
-from utils.cart_utils_reusable import (read_customer_data, merge_cart_records_for_analysis)
+from utils.cart_utils_reusable import extract_activity, identify_abandoned_cart, merge_cart_records_for_analysis, read_customer_data
 
 AWS_CONN_ID = "aws_default"
 
@@ -43,11 +43,26 @@ default_args = {
 def ecom_cart_trend_analysis_pipeline():
 
     @task()
-    def extract_cart_log(logical_date=None, **context) -> pd.DataFrame:
+    def extract_events_log(logical_date=None, **context) -> pd.DataFrame:
         """
         Dynamically fetches batch transactional JSON rows for the specific execution partition date and adds abandoned flag to each row.
         """
-        return merge_cart_records_for_analysis()
+        return extract_activity(logical_date=logical_date, **context)
+
+    @task()
+    def extract_abandoned_cart(df_activity_log: pd.DataFrame) -> pd.DataFrame:
+        """
+        Dynamically fetches batch transactional JSON rows for the specific execution partition date.
+        """
+        return identify_abandoned_cart(df_activity_log)
+
+
+    @task()
+    def all_events(df_activity_log: pd.DataFrame, df_abandoned_cart: pd.DataFrame) -> pd.DataFrame:
+        """
+        Dynamically fetches batch transactional JSON rows for the specific execution partition date and adds abandoned flag to each row.
+        """
+        return merge_cart_records_for_analysis(df_activity_log, df_abandoned_cart)
 
 
     @task()
@@ -59,17 +74,17 @@ def ecom_cart_trend_analysis_pipeline():
         
 
     @task()
-    def aggregate_data(df_cart: pd.DataFrame, logical_date=None, **context) -> str:
+    def aggregate_cart(df_activity: pd.DataFrame) -> str:
         """
         Calculates window-bounded activity loops, combines cart quantity and price
         """
-        if df_cart.empty:
+        if df_activity.empty:
             logging.warning("Input dataset is incomplete or missing. Halting pipeline execution downstream.")
             return None
 
 
         # 1. Enforce sorting constraints for chronological calculations
-        df = df_cart.sort_values(by=["user_id", "product_id", "timestamp"]).copy()
+        df = df_activity.sort_values(by=["user_id", "product_id", "timestamp"]).copy()
 
         # 2. Flag resets & rank backward from the latest event per product group
         df["is_reset"] = df["activity_type"].isin(["cart-update", "cart-remove"])
@@ -117,7 +132,7 @@ def ecom_cart_trend_analysis_pipeline():
         return local_path
 
     @task()
-    def merge_and_store(df_customers: pd.DataFrame, cart_file_path: str, logical_date=None, **context):
+    def merge_and_store(df_customers: pd.DataFrame, activity_file_path: str, logical_date=None, **context):
         """
         Merge the cart data with customer data and store in designated S3 bucket path
         """
@@ -127,8 +142,8 @@ def ecom_cart_trend_analysis_pipeline():
 
         # Enrich transactional metrics with core metadata profile records
 
-        if os.path.exists(cart_file_path):
-            user_summary = pd.read_csv(cart_file_path)
+        if os.path.exists(activity_file_path):
+            user_summary = pd.read_csv(activity_file_path)
             print(f"Loaded summary with {len(user_summary)} records.")
 
         final_report = df_customers.merge(user_summary, on="user_id", how="inner")
@@ -151,18 +166,19 @@ def ecom_cart_trend_analysis_pipeline():
         )
 
         # Deleting the temp file after processing to free up disk space
-        os.remove(cart_file_path)
+        os.remove(activity_file_path)
 
         return f"s3://{target_bucket}/{target_key}"
 
     # Declare runtime pipeline tasks
-    cart_data = extract_cart_log()
+    activity_data = extract_events_log()
+    abandoned_cart = extract_abandoned_cart(df_activity_log=activity_data)
+    events_with_flag = all_events(df_activity_log=activity_data, df_abandoned_cart=abandoned_cart)
+    activity_data_path = aggregate_cart(df_activity=events_with_flag)
     customer_data = extract_customer_data()
-    #final_cart_data_path = aggregate_data()
-    final_cart_data_path = aggregate_data(df_cart=cart_data)
     
     # TaskFlow API to form execution sequence based on dependency variables automatically
-    merge_and_store(df_customers=customer_data, cart_file_path=final_cart_data_path)
+    merge_and_store(df_customers=customer_data, activity_file_path=activity_data_path)
 
 # Instantiate the final production pipeline
 ecom_cart_trend_analysis = ecom_cart_trend_analysis_pipeline()
