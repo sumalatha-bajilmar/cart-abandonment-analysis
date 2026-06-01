@@ -12,7 +12,7 @@ AWS_CONN_ID = "aws_default"
 
 
 
-def extract_cart_activity(logical_date=None, **context) -> pd.DataFrame:
+def extract_activity(logical_date=None, **context) -> pd.DataFrame:
     """
     Dynamically fetches batch transactional JSON rows for the specific execution partition date.
     """
@@ -39,7 +39,7 @@ def extract_cart_activity(logical_date=None, **context) -> pd.DataFrame:
         content = file_obj.get()["Body"].read().decode("utf-8")
         df_list.append(pd.read_json(io.StringIO(content), lines=True))
 
-        return pd.concat(df_list, ignore_index=True)
+    return pd.concat(df_list, ignore_index=True)
 
     
 def read_customer_data() -> pd.DataFrame:
@@ -80,14 +80,14 @@ def read_customer_data() -> pd.DataFrame:
     return combined_customer_df
 
 
-def identify_abandoned_cart() -> pd.DataFrame:
+def identify_abandoned_cart(df_activity_log: pd.DataFrame) -> pd.DataFrame:
     """
     Identifies customers who have active cart modifications (add, update, remove)
     but have no subsequent checkout transaction with a 'success' status.
     
     Returns the exact audit trail of those abandoned cart actions.
     """
-    cart_activity = extract_cart_activity()
+    cart_activity = df_activity_log
 
     if cart_activity.empty:
         return pd.DataFrame()
@@ -129,21 +129,21 @@ def identify_abandoned_cart() -> pd.DataFrame:
     return abandoned_cart_df
 
 
-def merge_cart_records_for_analysis(logical_date=None, **context) -> pd.DataFrame:
+def merge_cart_records_for_analysis(df_activity_log: pd.DataFrame, df_abandoned_cart: pd.DataFrame) -> pd.DataFrame:
     """
     Merges abandoned cart records with remaining records safely,
     even if one or both source DataFrames are completely empty.
     """
     logging.info("Starting cart data merge loop...")
 
-    all_activity_df = extract_cart_activity()
+    all_activity_df = df_activity_log
 
     # Case 1: No overall source activity data found at all
     if all_activity_df is None or all_activity_df.empty:
         logging.warning("Source activity dataframe is empty. Cannot determine remaining entries.")
         return pd.DataFrame()
 
-    abandoned_cart_df = identify_abandoned_cart()
+    abandoned_cart_df = df_abandoned_cart
 
     # Case 2: Source activity exists, but NO records are classified as abandoned
     if abandoned_cart_df is None or abandoned_cart_df.empty:
