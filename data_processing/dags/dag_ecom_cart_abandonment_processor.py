@@ -18,7 +18,7 @@ from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowException
 
-from utils.cart_utils_reusable import (read_customer_data, identify_abandoned_cart)
+from utils.cart_utils_reusable import extract_activity, identify_abandoned_cart, read_customer_data
 
 AWS_CONN_ID = "aws_default"
 
@@ -44,11 +44,18 @@ default_args = {
 def ecom_cart_abandonment_pipeline():
 
     @task()
-    def extract_abandoned_cart(logical_date=None, **context) -> pd.DataFrame:
+    def extract_events_log(logical_date=None, **context) -> pd.DataFrame:
+        """
+        Dynamically fetches batch transactional JSON rows for the specific execution partition date and adds abandoned flag to each row.
+        """
+        return extract_activity(logical_date=logical_date, **context)
+
+    @task()
+    def extract_abandoned_cart(df_activity_log: pd.DataFrame) -> pd.DataFrame:
         """
         Dynamically fetches batch transactional JSON rows for the specific execution partition date.
         """
-        return identify_abandoned_cart()
+        return identify_abandoned_cart(df_activity_log)
 
 
     @task()
@@ -147,7 +154,8 @@ def ecom_cart_abandonment_pipeline():
         return f"s3://{target_bucket}/{target_key}"
 
     # Declare runtime pipeline tasks
-    cart_data = extract_abandoned_cart()
+    activity_data = extract_events_log()
+    cart_data = extract_abandoned_cart(df_activity_log=activity_data)
     customer_data = extract_customer_data()
     
     # TaskFlow API to form execution sequence based on dependency variables automatically
