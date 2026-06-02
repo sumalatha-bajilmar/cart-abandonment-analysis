@@ -132,7 +132,7 @@ def ecom_cart_trend_analysis_pipeline():
         return local_path
 
     @task()
-    def merge_and_store(df_customers: pd.DataFrame, activity_file_path: str, logical_date=None, **context):
+    def merge_and_store(df_activity_log: pd.DataFrame, df_customers: pd.DataFrame, activity_file_path: str, logical_date=None, **context):
         """
         Merge the cart data with customer data and store in designated S3 bucket path
         """
@@ -146,7 +146,9 @@ def ecom_cart_trend_analysis_pipeline():
             user_summary = pd.read_csv(activity_file_path)
             print(f"Loaded summary with {len(user_summary)} records.")
 
-        final_report = df_customers.merge(user_summary, on="user_id", how="inner")
+        activity_with_agg = df_activity_log.merge(user_summary, on="user_id", how="inner")
+
+        final_report = df_customers.merge(activity_with_agg, on="user_id", how="inner")
 
         # Load compiled report dataset directly to S3 partitioned analytics storage layer
         
@@ -178,7 +180,7 @@ def ecom_cart_trend_analysis_pipeline():
     customer_data = extract_customer_data()
     
     # TaskFlow API to form execution sequence based on dependency variables automatically
-    merge_and_store(df_customers=customer_data, activity_file_path=activity_data_path)
+    merge_and_store(df_activity_log=activity_data, df_customers=customer_data, activity_file_path=activity_data_path)
 
 # Instantiate the final production pipeline
 ecom_cart_trend_analysis = ecom_cart_trend_analysis_pipeline()
