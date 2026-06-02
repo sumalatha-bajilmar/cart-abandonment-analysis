@@ -32,3 +32,11 @@ CALL load_aws_credentials();
 
 # Set the target bucket deployment region (e.g., us-east-1)
 SET s3_region='ap-south-2';
+
+
+# -------------------- Run sample query --------------------
+Run the following command to enter into DuckDB command line interface
+duckdb
+
+# execute the SQL with correct S3 file in the DuckDB CLI
+SELECT *  FROM read_parquet('s3://your-bucket-name/path/*.parquet')  LIMIT 10;
