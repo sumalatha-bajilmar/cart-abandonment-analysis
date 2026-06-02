@@ -100,3 +100,5 @@ ssh -i "<path to pem file>/<pem-file-name.pem>" \
     -N -L 8080:localhost:8080 \
     ubuntu@<ec2-instance-id> \
     -o ProxyCommand="aws ec2-instance-connect open-tunnel --instance-id <ec2-instance-id> --remote-port 22"
+
+# Airflow browser UI: http://localhost:8080
