@@ -60,3 +60,13 @@ CREATE OR REPLACE PERSISTENT SECRET s3_auth (
     PROVIDER CREDENTIAL_CHAIN,
     REGION 'ap-south-2'
 );
+
+
+# -------------------- Connect to Superset UI from local using port forwarding --------------------
+# Run the following command on the terminal
+
+ssh -i "<path to pem file>/<pem-file-name.pem>" \
+    -N -L 8088:localhost:8088 \
+    ubuntu@<ec2-instance-id> \
+
+# Superset browser UI : http://localhost:8088
