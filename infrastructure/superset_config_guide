@@ -1,0 +1,62 @@
+Reference documents: 
+https://superset.apache.org/user-docs/quickstart/
+https://github.com/apache/superset
+
+
+# 1. Update the local package index
+sudo apt-get update -y
+
+# 2. Install Docker and Docker Compose via native Ubuntu mirrors
+sudo apt-get install -y docker.io docker-compose-v2
+
+# 3. Start and enable the Docker daemon service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 4. Enable non-sudo execution rights
+sudo usermod -aG docker $USER
+newgrp docker
+
+# 5. Verifying the versions
+docker --version
+docker compose version
+
+# 6. Clone the superset repository
+git clone https://github.com/apache/superset.git
+
+# 7. Enter the repository you just cloned
+cd superset
+
+# 8. Set the repo to the state associated with the latest official version
+git checkout tags/6.0.0
+
+# 9. Update environment variable to save the memory
+vim docker/.env
+SUPERSET_LOAD_EXAMPLES=false
+
+# 10. Fire up Superset using Docker Compose
+docker compose -f docker-compose-image-tag.yml up -d
+
+# To change the credentials for Superset UI login # Optional - Can do it on the superset UI under the profile section too
+docker compose exec superset superset fab reset-password --username admin --password new_password_here
+
+
+# To connect to DuckDB and set up auto credentials using Ec2 instance profile permissions
+
+SQL Alchemy URI: duckdb:////app/superset_home/shopin_prod.db
+
+# Enter the follwing configuration in DuckDB connection -> Advanced -> Security -> Secure Extra
+{
+    "connect_args": {
+        "config": {
+            "allow_unsigned_extensions": "true"
+        }
+    }
+}
+
+# Execute the following in the SQL editor to create a persistent secret to retrieve from AWS
+CREATE OR REPLACE PERSISTENT SECRET s3_auth (
+    TYPE S3,
+    PROVIDER CREDENTIAL_CHAIN,
+    REGION 'ap-south-2'
+);
