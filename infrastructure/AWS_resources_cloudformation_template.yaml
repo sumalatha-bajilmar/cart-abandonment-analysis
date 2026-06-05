@@ -1,0 +1,1174 @@
+---
+Metadata:
+  AWSToolsMetrics:
+    IaC_Generator: "arn:aws:cloudformation:ap-south-2:279867550341:generatedTemplate/850cee93-0986-43bf-b3ea-7e79df7b9bf9"
+Parameters:
+  KeyName:
+    Default: "airflow_ec2-key"
+    Type: "String"
+    Description: "Name of an existing EC2 KeyPair to enable SSH access"
+  LambdaFunctionDatageneratorCodeSourceKMSKeyArnsdH6T:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The ARN of the KMSlong (KMS) customer managed key that's used to\
+      \ encrypt your function's .zip deployment package. If you don't provide a customer\
+      \ managed key, Lambda uses an [owned key](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-owned-cmk)."
+  LambdaFunctionDatageneratorCodeImageUriMJsXE:
+    NoEcho: "true"
+    Type: "String"
+    Description: "URI of a [container image](https://docs.aws.amazon.com/lambda/latest/dg/lambda-images.html)\
+      \ in the Amazon ECR registry."
+  KeyName2:
+    Default: "airflow_ec2-key"
+    Type: "String"
+    Description: "Name of an existing EC2 KeyPair to enable SSH access"
+  LambdaFunctionDatageneratorCodeS3BucketPEPRJ:
+    NoEcho: "true"
+    Type: "String"
+    Description: "An Amazon S3 bucket in the same AWS-Region as your function. The\
+      \ bucket can be in a different AWS-account."
+  LambdaFunctionDatageneratorCodeS3KeybmtLl:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The Amazon S3 key of the deployment package."
+  LambdaFunctionDatageneratorCodeS3ObjectVersionlZFPO:
+    NoEcho: "true"
+    Type: "String"
+    Description: "For versioned objects, the version of the deployment package object\
+      \ to use."
+  LambdaFunctionDatageneratorCodeZipFilexUMeO:
+    NoEcho: "true"
+    Type: "String"
+    Description: "(Node.js and Python) The source code of your Lambda function. If\
+      \ you include your function source inline with this parameter, CFN places it\
+      \ in a file named ``index`` and zips it to create a [deployment package](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-package.html).\
+      \ This zip file cannot exceed 4MB. For the ``Handler`` property, the first part\
+      \ of the handler identifier must be ``index``. For example, ``index.handler``.\n\
+      \  When you specify source code inline for a Node.js function, the ``index``\
+      \ file that CFN creates uses the extension ``.js``. This means that Node.js\
+      \ treats the file as a CommonJS module.\n When using Node.js 24 or later, Node.js\
+      \ can automatically detect if a ``.js`` file should be treated as CommonJS or\
+      \ as an ES module. To enable auto-detection, add the ``--experimental-detect-module``\
+      \ flag to the ``NODE_OPTIONS`` environment variable. For more information, see\
+      \ [Experimental Node.js features](https://docs.aws.amazon.com//lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features).\n\
+      \   For JSON, you must escape quotes and special characters such as newline\
+      \ (``\\n``) with a backslash.\n If you specify a function that interacts with\
+      \ an AWS CloudFormation custom resource, you don't have to write your own functions\
+      \ to send responses to the custom resource that invoked the function. AWS CloudFormation\
+      \ provides a response module ([cfn-response](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html))\
+      \ that simplifies sending responses. See [Using Lambda with CloudFormation](https://docs.aws.amazon.com/lambda/latest/dg/services-cloudformation.html)\
+      \ for details."
+Resources:
+  IAMRoleBistackinstancerole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+      MaxSessionDuration: 3600
+      RoleName: "bi_stack_instancerole"
+      Description: "Allows EC2 instances to call AWS services on your behalf."
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ec2.amazonaws.com"
+  EC2VPCGatewayAttachmentIGW:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      InternetGatewayId: "igw-01f1b5cb28d9e2605"
+      VpcId: "vpc-02300d2404d871e5c"
+  IAMRoleAWSServiceRoleForEc2InstanceConnect:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/ec2-instance-connect.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/Ec2InstanceConnectEndpoint"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForEc2InstanceConnect"
+      Description: "The Service Linked Role used by EC2 Instance Connect Endpoint."
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ec2-instance-connect.amazonaws.com"
+  EC2SecurityGroupIngressBi:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupIngress"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupName: "shopin-main-sg"
+      FromPort: 8088
+      SourceSecurityGroupName: "ec2connect-endpoint-sg"
+      ToPort: 8088
+      SourceSecurityGroupOwnerId: "279867550341"
+      IpProtocol: "tcp"
+      SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+      GroupId: "sg-0ee1bb10834959513"
+  SSMParameterairflowconnectionsawsdefault:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::SSM::Parameter"
+    DeletionPolicy: "Retain"
+    Properties:
+      Value: "aws://@/?region_name=ap-south-2"
+      DataType: "text"
+      Type: "String"
+      Name: "/airflow/connections/aws_default"
+  EC2KeyPairAirflowec2key:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::KeyPair"
+    DeletionPolicy: "Retain"
+    Properties:
+      KeyName: "airflow_ec2-key"
+      KeyType: "rsa"
+      PublicKeyMaterial: "xxxxxx  \ airflow_ec2-key\n"
+      Tags: []
+  EC2SubnetFZ:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Subnet"
+    DeletionPolicy: "Retain"
+    Properties:
+      MapPublicIpOnLaunch: false
+      EnableDns64: false
+      VpcId: "vpc-02300d2404d871e5c"
+      AvailabilityZoneId: "aps2-az3"
+      PrivateDnsNameOptionsOnLaunch:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      AvailabilityZone: "ap-south-2c"
+      CidrBlock: "10.0.0.16/28"
+      Ipv6Native: false
+      Tags:
+      - Value: "subnet-private-shopin"
+        Key: "Name"
+  EC2SubnetNetworkAclAssociation:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkAclId: "acl-069d726e92be83594"
+      SubnetId: "subnet-05a3a1bffe691cb88"
+  IAMManagedPolicyPolicyAirflowCartPipelinePolicy:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: "Retain"
+    Properties:
+      ManagedPolicyName: "AirflowCartPipelinePolicy"
+      Path: "/"
+      Description: ""
+      Groups: []
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Resource:
+          - "arn:aws:s3:::shopin-cart-analysis"
+          - "arn:aws:s3:::shopin-customer-data"
+          - "arn:aws:s3:::shopin-cart-analysis/raw/"
+          - "arn:aws:s3:::shopin-cart-analysis/raw/*"
+          - "arn:aws:s3:::shopin-cart-analysis/promotional/"
+          - "arn:aws:s3:::shopin-cart-analysis/promotional/*"
+          - "arn:aws:s3:::shopin-cart-analysis/analytics/"
+          - "arn:aws:s3:::shopin-cart-analysis/analytics/*"
+          - "arn:aws:s3:::shopin-customer-data/prod/"
+          - "arn:aws:s3:::shopin-customer-data/prod/**"
+          Action:
+          - "s3:ListBucket"
+          - "s3:GetObject"
+          - "s3:PutObject"
+          Effect: "Allow"
+          Sid: "S3BucketAccess"
+        - Resource:
+          - "arn:aws:ssm:ap-south-2:279867550341:parameter/airflow/*"
+          Action:
+          - "ssm:GetParameter"
+          - "ssm:GetParameters"
+          - "ssm:GetParametersByPath"
+          Effect: "Allow"
+          Sid: "SSMParameterStoreAccess"
+      Roles:
+      - "AirflowInstanceRole"
+      Users: []
+  EC2NetworkInterfaceAttachmentRb:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterfaceAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkInterfaceId: "eni-0631aacbb08e5d126"
+      DeviceIndex: "1"
+      DeleteOnTermination: false
+  EC2NetworkInterfaceAttachmentAv:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterfaceAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkInterfaceId: "eni-0eb26a70470953a83"
+      InstanceId: "i-03b27e32066b70bcf"
+      DeviceIndex: "0"
+      DeleteOnTermination: true
+  EC2NatGateway:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NatGateway"
+    DeletionPolicy: "Retain"
+    Properties:
+      PrivateIpAddress: "10.0.0.9"
+      ConnectivityType: "public"
+      VpcId: "vpc-02300d2404d871e5c"
+      AvailabilityMode: "zonal"
+      AllocationId: "eipalloc-001a1fce85dae3b1e"
+      SubnetId: "subnet-06f318b611b490124"
+      Tags:
+      - Value: "nat-gateway-myvpc"
+        Key: "Name"
+  EC2NetworkInterfaceUH:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterface"
+    DeletionPolicy: "Retain"
+    Properties:
+      SourceDestCheck: true
+      InterfaceType: "interface"
+      Description: ""
+      PrivateIpAddress: "10.0.0.25"
+      SecondaryPrivateIpAddressCount: 0
+      Ipv6PrefixCount: 0
+      Ipv4Prefixes: []
+      Ipv4PrefixCount: 0
+      GroupSet:
+      - "sg-0ee1bb10834959513"
+      Ipv6Prefixes: []
+      SubnetId: "subnet-08e742a5a1dd1e190"
+      Tags: []
+  EC2SubnetNetworkAclAssociationPI:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkAclId: "acl-069d726e92be83594"
+      SubnetId: "subnet-0de03bd9d5c397a46"
+  EC2SubnetNetworkAclAssociationLD:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkAclId: "acl-069d726e92be83594"
+      SubnetId: "subnet-0c3e49926bc489db3"
+  EC2EIP1611221927:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::EIP"
+    DeletionPolicy: "Retain"
+    Properties:
+      PublicIpv4Pool: "amazon"
+      Domain: "vpc"
+      Tags: []
+      NetworkBorderGroup: "ap-south-2"
+  IAMInstanceProfileAirflowInstanceRole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::InstanceProfile"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      Roles:
+      - "AirflowInstanceRole"
+      InstanceProfileName: "AirflowInstanceRole"
+  EC2SecurityGroupEgressJk:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupEgress"
+    DeletionPolicy: "Retain"
+    Properties:
+      IpProtocol: "tcp"
+      FromPort: 443
+      DestinationPrefixListId: "pl-8da045e4"
+      ToPort: 443
+      GroupId: "sg-0ee1bb10834959513"
+  IAMUserDev1:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::User"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/IAMUserChangePassword"
+      - "arn:aws:iam::aws:policy/AdministratorAccess"
+      UserName: "dev1"
+      LoginProfile:
+        PasswordResetRequired: false
+      Tags:
+      - Value: "For my aws account login from local"
+        Key: "xxxxxx"
+  EC2Instance:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Instance"
+    DeletionPolicy: "Retain"
+    Properties:
+      Tenancy: "default"
+      PrivateIpAddress: "10.0.0.20"
+      MetadataOptions:
+        HttpPutResponseHopLimit: 2
+        HttpProtocolIpv6: "disabled"
+        HttpTokens: "required"
+        InstanceMetadataTags: "disabled"
+        HttpEndpoint: "enabled"
+      InstanceInitiatedShutdownBehavior: "stop"
+      BlockDeviceMappings:
+      - Ebs:
+          SnapshotId: "snap-02c8b651744241b4d"
+          VolumeType: "gp3"
+          Iops: 3000
+          VolumeSize: 20
+          Encrypted: false
+          DeleteOnTermination: true
+        DeviceName: "/dev/sda1"
+      PrivateDnsNameOptions:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      SecurityGroupIds:
+      - "sg-0ee1bb10834959513"
+      EbsOptimized: true
+      DisableApiTermination: false
+      SourceDestCheck: true
+      PlacementGroupName: ""
+      NetworkInterfaces:
+      - Ipv6Addresses: []
+        SecondaryPrivateIpAddressCount: 0
+        NetworkInterfaceId: "eni-0eb26a70470953a83"
+        DeviceIndex: "0"
+      ImageId: "ami-024ebedf48d280810"
+      InstanceType: "c7i-flex.large"
+      Monitoring: false
+      Tags:
+      - Value: "bi_infra_ec2"
+        Key: "Name"
+      CreditSpecification:
+        CPUCredits: "standard"
+  EC2EIPAssociation:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::EIPAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      PrivateIpAddress: "10.0.0.9"
+      NetworkInterfaceId: "eni-03a49eb26c76beb48"
+      EIP:
+        Fn::GetAtt:
+        - "EC2EIP1611221927"
+        - "PublicIp"
+      AllocationId: "eipalloc-001a1fce85dae3b1e"
+  EC2Route:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Route"
+    DeletionPolicy: "Retain"
+    Properties:
+      NatGatewayId: "nat-09d6ce95cb9fdebe5"
+      RouteTableId: "rtb-0075a89395b0ae1b4"
+      DestinationCidrBlock: "0.0.0.0/0"
+  EC2RouteUu:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Route"
+    DeletionPolicy: "Retain"
+    Properties:
+      RouteTableId: "rtb-0075a89395b0ae1b4"
+      DestinationPrefixListId: "pl-8da045e4"
+      GatewayId: "vpce-05c8b3256f930b8c7"
+      VpcEndpointId: "vpce-05c8b3256f930b8c7"
+  IAMRoleAWSServiceRoleForTrustedAdvisor:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/trustedadvisor.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/AWSTrustedAdvisorServiceRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForTrustedAdvisor"
+      Description: "Access for the AWS Trusted Advisor Service to help reduce cost,\
+        \ increase performance, and improve security of your AWS environment."
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "trustedadvisor.amazonaws.com"
+  S3BucketShopincartanalysis:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: "Retain"
+    Properties:
+      AbacStatus: "Disabled"
+      PublicAccessBlockConfiguration:
+        RestrictPublicBuckets: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        BlockPublicAcls: true
+      BucketName: "shopin-cart-analysis"
+      VersioningConfiguration:
+        Status: "Enabled"
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: "BucketOwnerEnforced"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - BucketKeyEnabled: true
+          BlockedEncryptionTypes:
+            EncryptionType:
+            - "SSE-C"
+          ServerSideEncryptionByDefault:
+            SSEAlgorithm: "AES256"
+  EC2VPCCidrBlock:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPCCidrBlock"
+    DeletionPolicy: "Retain"
+    Properties:
+      VpcId: "vpc-02300d2404d871e5c"
+      CidrBlock: "10.0.0.0/24"
+  EC2NetworkInterfaceAttachment:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterfaceAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkInterfaceId: "eni-03a49eb26c76beb48"
+      DeviceIndex: "1"
+      DeleteOnTermination: false
+  EC2VPCDHCPOptionsAssociation:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPCDHCPOptionsAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      VpcId: "vpc-02300d2404d871e5c"
+      DhcpOptionsId: "dopt-0e708a8a7b4befb41"
+  LogsLogStream20260524LATESTc03fdbb0cc774e39a66f8749b48fcaf7:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "2026/05/24/[$LATEST]c03fdbb0cc774e39a66f8749b48fcaf7"
+      LogGroupName: "/aws/lambda/data-generator"
+  EC2NetworkInterface:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterface"
+    DeletionPolicy: "Retain"
+    Properties:
+      SourceDestCheck: false
+      InterfaceType: "null"
+      Description: "Interface for NAT Gateway nat-09d6ce95cb9fdebe5"
+      PrivateIpAddress: "10.0.0.9"
+      SecondaryPrivateIpAddressCount: 0
+      Ipv6PrefixCount: 0
+      Ipv4Prefixes: []
+      Ipv4PrefixCount: 0
+      GroupSet: []
+      Ipv6Prefixes: []
+      SubnetId: "subnet-06f318b611b490124"
+      Tags: []
+  EC2NetworkInterfaceAttachmentUh:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterfaceAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkInterfaceId: "eni-0db420a3e317459c3"
+      InstanceId: "i-08e3b00dd8c946d3e"
+      DeviceIndex: "0"
+      DeleteOnTermination: true
+  EC2InternetGateway:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::InternetGateway"
+    DeletionPolicy: "Retain"
+    Properties:
+      Tags:
+      - Value: "myvpc-ig"
+        Key: "Name"
+  IAMRoleDatageneratorroleb2xuq4wz:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/service-role/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::279867550341:policy/service-role/AWSLambdaBasicExecutionRole-43f9111e-4daf-42f8-bcf2-45305b32384e"
+      - "arn:aws:iam::279867550341:policy/service-role/AWSLambdaVPCAccessExecutionRole-a1af4685-aebb-4a2a-8a19-39e61b90cd33"
+      MaxSessionDuration: 3600
+      RoleName: "data-generator-role-b2xuq4wz"
+      Policies:
+      - PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Resource:
+            - "arn:aws:s3:::shopin-cart-analysis/raw/*"
+            - "arn:aws:s3:::shopin-customer-data/*"
+            Action:
+            - "s3:PutObject"
+            Effect: "Allow"
+            Sid: "PutObjectToS3"
+        PolicyName: "s3-write-access-rawzone"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "lambda.amazonaws.com"
+  LambdaFunctionDatagenerator:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Lambda::Function"
+    DeletionPolicy: "Retain"
+    Properties:
+      MemorySize: 128
+      Description: ""
+      TracingConfig:
+        Mode: "PassThrough"
+      VpcConfig:
+        SecurityGroupIds:
+        - "sg-0ee1bb10834959513"
+        SubnetIds:
+        - "subnet-08e742a5a1dd1e190"
+        Ipv6AllowedForDualStack: false
+      Timeout: 300
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: "Auto"
+      Handler: "lambda_function.lambda_handler"
+      Code:
+        SourceKMSKeyArn:
+          Ref: "LambdaFunctionDatageneratorCodeSourceKMSKeyArnsdH6T"
+        S3ObjectVersion:
+          Ref: "LambdaFunctionDatageneratorCodeS3ObjectVersionlZFPO"
+        S3Bucket:
+          Ref: "LambdaFunctionDatageneratorCodeS3BucketPEPRJ"
+        ZipFile:
+          Ref: "LambdaFunctionDatageneratorCodeZipFilexUMeO"
+        ImageUri:
+          Ref: "LambdaFunctionDatageneratorCodeImageUriMJsXE"
+        S3Key:
+          Ref: "LambdaFunctionDatageneratorCodeS3KeybmtLl"
+      Role: "arn:aws:iam::279867550341:role/service-role/data-generator-role-b2xuq4wz"
+      FileSystemConfigs: []
+      FunctionName: "data-generator"
+      Runtime: "python3.13"
+      PackageType: "Zip"
+      LoggingConfig:
+        LogFormat: "Text"
+        LogGroup: "/aws/lambda/data-generator"
+      RecursiveLoop: "Terminate"
+      EphemeralStorage:
+        Size: 512
+      Layers:
+      - "arn:aws:lambda:ap-south-2:279867550341:layer:faker-module:2"
+      Architectures:
+      - "x86_64"
+  EC2SubnetRouteTableAssociation:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      RouteTableId: "rtb-04219d8adfc520a06"
+      SubnetId: "subnet-06f318b611b490124"
+  EC2NetworkAcl:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkAcl"
+    DeletionPolicy: "Retain"
+    Properties:
+      VpcId: "vpc-02300d2404d871e5c"
+      Tags: []
+  EC2VPCEndpoint:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPCEndpoint"
+    DeletionPolicy: "Retain"
+    Properties:
+      PrivateDnsEnabled: false
+      IpAddressType: "ipv4"
+      ServiceRegion: "ap-south-2"
+      DnsOptions:
+        PrivateDnsOnlyForInboundResolverEndpoint: "NotSpecified"
+        PrivateDnsSpecifiedDomains:
+        - "*"
+        DnsRecordIpType: "service-defined"
+        PrivateDnsPreference: "VERIFIED_DOMAINS_ONLY"
+      ResourceConfigurationArn: ""
+      SecurityGroupIds: []
+      SubnetIds: []
+      ServiceNetworkArn: ""
+      VpcId: "vpc-02300d2404d871e5c"
+      RouteTableIds:
+      - Ref: "EC2RouteTable"
+      ServiceName: "com.amazonaws.ap-south-2.s3"
+      PolicyDocument:
+        Version: "2008-10-17"
+        Statement:
+        - Resource: "*"
+          Action: "*"
+          Effect: "Allow"
+          Principal: "*"
+      VpcEndpointType: "Gateway"
+      Tags:
+      - Value: "endpoint-s3"
+        Key: "Name"
+  EC2RouteUb:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Route"
+    DeletionPolicy: "Retain"
+    Properties:
+      RouteTableId: "rtb-04219d8adfc520a06"
+      DestinationCidrBlock: "10.0.0.0/24"
+      GatewayId: "local"
+      VpcEndpointId: "local"
+  IAMRoleAirflowInstanceRole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::279867550341:policy/AirflowCartPipelinePolicy"
+      - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      MaxSessionDuration: 3600
+      RoleName: "AirflowInstanceRole"
+      Description: ""
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ec2.amazonaws.com"
+  EC2NetworkInterfaceNV:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterface"
+    DeletionPolicy: "Retain"
+    Properties:
+      SourceDestCheck: true
+      InterfaceType: "lambda"
+      Description: "AWS Lambda VPC ENI-data-generator"
+      PrivateIpAddress: "10.0.0.26"
+      SecondaryPrivateIpAddressCount: 0
+      Ipv6PrefixCount: 0
+      Ipv4Prefixes: []
+      Ipv4PrefixCount: 0
+      GroupSet:
+      - "sg-0ee1bb10834959513"
+      Ipv6Prefixes: []
+      SubnetId: "subnet-08e742a5a1dd1e190"
+      Tags: []
+  EC2InstanceLQ:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Instance"
+    DeletionPolicy: "Retain"
+    Properties:
+      Tenancy: "default"
+      PrivateIpAddress: "10.0.0.25"
+      MetadataOptions:
+        HttpPutResponseHopLimit: 2
+        HttpProtocolIpv6: "disabled"
+        HttpTokens: "required"
+        InstanceMetadataTags: "disabled"
+        HttpEndpoint: "enabled"
+      UserData: "IyEvYmluL2Jhc2gKCiMgc3RvcHBpbmcgZG9ja2VyIGZyb20gYXV0byBzdGFydGluZyB0byBwcmV2ZW50IG1lbW9yeSBydW5uaW5nIG91dApzeXN0ZW1jdGwgc3RvcCBkb2NrZXIgZG9ja2VyLnNvY2tldApzeXN0ZW1jdGwgZGlzYWJsZSBkb2NrZXIgZG9ja2VyLnNvY2tldAoKCiMgMS4gQ3JlYXRlIGEgNEdCIHN3YXAgZmlsZSAoMTAyNCAqIDQgPSA0MDk2KQpkZCBpZj0vZGV2L3plcm8gb2Y9L3N3YXBmaWxlIGJzPTFNIGNvdW50PTQwOTYKCiMgMi4gU2V0IHN0cmljdCByb290LW9ubHkgcGVybWlzc2lvbnMKY2htb2QgNjAwIC9zd2FwZmlsZQoKIyAzLiBGb3JtYXR0ZXIgdGhlIGZpbGUgYXMgc3dhcCBzcGFjZQpta3N3YXAgL3N3YXBmaWxlCgojIDQuIEFjdGl2YXRlIHRoZSBzd2FwIGZpbGUgaW1tZWRpYXRlbHkKc3dhcG9uIC9zd2FwZmlsZQoKIyA1LiBNYWtlIHRoZSBzd2FwIGZpbGUgcGVyc2lzdCBhY3Jvc3MgZnV0dXJlIHJlYm9vdHMKZWNobyAnL3N3YXBmaWxlIG5vbmUgc3dhcCBzdyAwIDAnID4+IC9ldGMvZnN0YWI="
+      InstanceInitiatedShutdownBehavior: "stop"
+      BlockDeviceMappings:
+      - Ebs:
+          SnapshotId: "snap-02c8b651744241b4d"
+          VolumeType: "gp3"
+          Iops: 3000
+          VolumeSize: 20
+          Encrypted: false
+          DeleteOnTermination: true
+        DeviceName: "/dev/sda1"
+      PrivateDnsNameOptions:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      SecurityGroupIds:
+      - "sg-0ee1bb10834959513"
+      EbsOptimized: true
+      DisableApiTermination: false
+      SourceDestCheck: true
+      PlacementGroupName: ""
+      NetworkInterfaces:
+      - Ipv6Addresses: []
+        SecondaryPrivateIpAddressCount: 0
+        NetworkInterfaceId: "eni-0db420a3e317459c3"
+        DeviceIndex: "0"
+      ImageId: "ami-024ebedf48d280810"
+      InstanceType: "c7i-flex.large"
+      Monitoring: false
+      Tags:
+      - Value: "airflow-infra-ec2"
+        Key: "Name"
+      CreditSpecification:
+        CPUCredits: "unlimited"
+  EC2SecurityGroupEgressFD:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupEgress"
+    DeletionPolicy: "Retain"
+    Properties:
+      IpProtocol: "tcp"
+      DestinationSecurityGroupId: "sg-0ee1bb10834959513"
+      FromPort: 8080
+      ToPort: 8080
+      GroupId: "sg-04fdc8982132bc0a6"
+  LogsLogGroupawslambdadatagenerator:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/aws/lambda/data-generator"
+      BearerTokenAuthenticationEnabled: false
+      DeletionProtectionEnabled: false
+      DataProtectionPolicy: {}
+  IAMManagedPolicyPolicyserviceroleAWSLambdaBasicExecutionRole43f9111e4daf42f8bcf245305b32384e:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: "Retain"
+    Properties:
+      ManagedPolicyName: "AWSLambdaBasicExecutionRole-43f9111e-4daf-42f8-bcf2-45305b32384e"
+      Path: "/service-role/"
+      Description: ""
+      Groups: []
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Resource: "arn:aws:logs:ap-south-2:279867550341:*"
+          Action: "logs:CreateLogGroup"
+          Effect: "Allow"
+        - Resource:
+          - "arn:aws:logs:ap-south-2:279867550341:log-group:/aws/lambda/data-generator:*"
+          Action:
+          - "logs:CreateLogStream"
+          - "logs:PutLogEvents"
+          Effect: "Allow"
+      Roles:
+      - "data-generator-role-b2xuq4wz"
+      Users: []
+  EC2Subnet:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Subnet"
+    DeletionPolicy: "Retain"
+    Properties:
+      MapPublicIpOnLaunch: false
+      EnableDns64: false
+      VpcId: "vpc-02300d2404d871e5c"
+      AvailabilityZoneId: "aps2-az1"
+      PrivateDnsNameOptionsOnLaunch:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      AvailabilityZone: "ap-south-2a"
+      CidrBlock: "10.0.0.0/28"
+      Ipv6Native: false
+      Tags:
+      - Value: "subnet-public-shopin"
+        Key: "Name"
+  EC2SecurityGroup:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupDescription: "security group for EC2 connect endpoint"
+      GroupName: "ec2connect-endpoint-sg"
+      VpcId: "vpc-02300d2404d871e5c"
+      SecurityGroupEgress:
+      - IpProtocol: "tcp"
+        DestinationSecurityGroupId: "sg-0ee1bb10834959513"
+        FromPort: 8080
+        ToPort: 8080
+      - IpProtocol: "tcp"
+        DestinationSecurityGroupId: "sg-0ee1bb10834959513"
+        FromPort: 22
+        ToPort: 22
+  SSMParameterairflowvariabless3customerbucket:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::SSM::Parameter"
+    DeletionPolicy: "Retain"
+    Properties:
+      Value: "shopin-customer-data"
+      DataType: "text"
+      Type: "String"
+      Name: "/airflow/variables/s3_customer_bucket"
+  EC2SecurityGroupIngressHb:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupIngress"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupName: "shopin-main-sg"
+      FromPort: 22
+      SourceSecurityGroupName: "ec2connect-endpoint-sg"
+      ToPort: 22
+      SourceSecurityGroupOwnerId: "279867550341"
+      IpProtocol: "tcp"
+      SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+      GroupId: "sg-0ee1bb10834959513"
+  EC2SecurityGroupRW:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupDescription: "Main Security group to allow critical access"
+      GroupName: "shopin-main-sg"
+      VpcId: "vpc-02300d2404d871e5c"
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 8080
+        SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+        ToPort: 8080
+        SourceSecurityGroupOwnerId: "279867550341"
+      - CidrIp: "10.0.0.0/24"
+        IpProtocol: "-1"
+        FromPort: -1
+        ToPort: -1
+      - IpProtocol: "tcp"
+        FromPort: 22
+        SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+        ToPort: 22
+        SourceSecurityGroupOwnerId: "279867550341"
+      - IpProtocol: "tcp"
+        FromPort: 8088
+        SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+        ToPort: 8088
+        SourceSecurityGroupOwnerId: "279867550341"
+      SecurityGroupEgress:
+      - CidrIp: "0.0.0.0/0"
+        IpProtocol: "tcp"
+        FromPort: 80
+        ToPort: 80
+      - CidrIp: "0.0.0.0/0"
+        IpProtocol: "-1"
+        FromPort: -1
+        ToPort: -1
+      - IpProtocol: "tcp"
+        FromPort: 443
+        DestinationPrefixListId: "pl-8da045e4"
+        ToPort: 443
+  S3BucketShopincustomerdata:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: "Retain"
+    Properties:
+      AbacStatus: "Disabled"
+      PublicAccessBlockConfiguration:
+        RestrictPublicBuckets: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        BlockPublicAcls: true
+      BucketName: "shopin-customer-data"
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: "BucketOwnerEnforced"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - BucketKeyEnabled: true
+          BlockedEncryptionTypes:
+            EncryptionType:
+            - "SSE-C"
+          ServerSideEncryptionByDefault:
+            SSEAlgorithm: "AES256"
+  EC2SecurityGroupIngress:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupIngress"
+    DeletionPolicy: "Retain"
+    Properties:
+      CidrIp: "10.0.0.0/24"
+      GroupName: "shopin-main-sg"
+      IpProtocol: "-1"
+      FromPort: -1
+      ToPort: -1
+      GroupId: "sg-0ee1bb10834959513"
+  EC2RouteTableDF:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::RouteTable"
+    DeletionPolicy: "Retain"
+    Properties:
+      VpcId: "vpc-02300d2404d871e5c"
+      Tags:
+      - Value: "public-route-table"
+        Key: "Name"
+  IAMManagedPolicyPolicyserviceroleAWSLambdaVPCAccessExecutionRolea1af4685aebb4a2a8a1939e61b90cd33:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: "Retain"
+    Properties:
+      ManagedPolicyName: "AWSLambdaVPCAccessExecutionRole-a1af4685-aebb-4a2a-8a19-39e61b90cd33"
+      Path: "/service-role/"
+      Description: ""
+      Groups: []
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Resource: "*"
+          Action:
+          - "ec2:CreateNetworkInterface"
+          - "ec2:DeleteNetworkInterface"
+          - "ec2:DescribeNetworkInterfaces"
+          Effect: "Allow"
+      Roles:
+      - "data-generator-role-b2xuq4wz"
+      Users: []
+  EC2VolumeAttachment:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VolumeAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      VolumeId: "vol-0b3d3a4dcceeea707"
+      InstanceId: "i-08e3b00dd8c946d3e"
+      Device: "/dev/sda1"
+      EbsCardIndex: 0
+  IAMInstanceProfileBistackinstancerole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::InstanceProfile"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      Roles:
+      - "bi_stack_instancerole"
+      InstanceProfileName: "bi_stack_instancerole"
+  EC2RouteUE:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Route"
+    DeletionPolicy: "Retain"
+    Properties:
+      RouteTableId: "rtb-0075a89395b0ae1b4"
+      DestinationCidrBlock: "10.0.0.0/24"
+      GatewayId: "local"
+      VpcEndpointId: "local"
+  EC2NetworkInterfaceOK:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterface"
+    DeletionPolicy: "Retain"
+    Properties:
+      SourceDestCheck: false
+      InterfaceType: "null"
+      Description: "Instance Connect Endpoint (id: eice-0e97de9cc3865e3ed)"
+      PrivateIpAddress: "10.0.0.24"
+      SecondaryPrivateIpAddressCount: 0
+      Ipv6PrefixCount: 0
+      Ipv4Prefixes: []
+      Ipv4PrefixCount: 0
+      GroupSet:
+      - "sg-04fdc8982132bc0a6"
+      Ipv6Prefixes: []
+      SubnetId: "subnet-08e742a5a1dd1e190"
+      Tags:
+      - Value: "eice-0e97de9cc3865e3ed"
+        Key: "InstanceConnectEndpointId"
+  EC2NetworkInterfaceN4:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterface"
+    DeletionPolicy: "Retain"
+    Properties:
+      SourceDestCheck: true
+      InterfaceType: "interface"
+      Description: ""
+      PrivateIpAddress: "10.0.0.20"
+      SecondaryPrivateIpAddressCount: 0
+      Ipv6PrefixCount: 0
+      Ipv4Prefixes: []
+      Ipv4PrefixCount: 0
+      GroupSet:
+      - "sg-0ee1bb10834959513"
+      Ipv6Prefixes: []
+      SubnetId: "subnet-08e742a5a1dd1e190"
+      Tags: []
+  SSMParameterairflowvariabless3cartbucket:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::SSM::Parameter"
+    DeletionPolicy: "Retain"
+    Properties:
+      Value: "shopin-cart-analysis"
+      DataType: "text"
+      Type: "String"
+      Name: "/airflow/variables/s3_cart_bucket"
+  EC2SecurityGroupIngressQ8:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupIngress"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupName: "shopin-main-sg"
+      FromPort: 8080
+      SourceSecurityGroupName: "ec2connect-endpoint-sg"
+      ToPort: 8080
+      SourceSecurityGroupOwnerId: "279867550341"
+      IpProtocol: "tcp"
+      SourceSecurityGroupId: "sg-04fdc8982132bc0a6"
+      GroupId: "sg-0ee1bb10834959513"
+  EC2Volume:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Volume"
+    DeletionPolicy: "Retain"
+    Properties:
+      MultiAttachEnabled: false
+      SnapshotId: "snap-02c8b651744241b4d"
+      VolumeType: "gp3"
+      Encrypted: false
+      Size: 20
+      AutoEnableIO: true
+      AvailabilityZoneId: "aps2-az3"
+      AvailabilityZone: "ap-south-2c"
+      Throughput: 125
+      Iops: 3000
+      Tags:
+      - Value: "airflow_volume"
+        Key: "Name"
+  EC2RouteHJ:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Route"
+    DeletionPolicy: "Retain"
+    Properties:
+      RouteTableId: "rtb-04219d8adfc520a06"
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: "igw-01f1b5cb28d9e2605"
+      VpcEndpointId: "igw-01f1b5cb28d9e2605"
+  EC2VolumeIe:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Volume"
+    DeletionPolicy: "Retain"
+    Properties:
+      MultiAttachEnabled: false
+      SnapshotId: "snap-02c8b651744241b4d"
+      VolumeType: "gp3"
+      Encrypted: false
+      Size: 20
+      AutoEnableIO: true
+      AvailabilityZoneId: "aps2-az3"
+      AvailabilityZone: "ap-south-2c"
+      Throughput: 125
+      Iops: 3000
+      Tags:
+      - Value: "bi_stack_volume"
+        Key: "Name"
+  EC2NetworkInterfaceAttachmentKT:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::NetworkInterfaceAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkInterfaceId: "eni-0f9fc66e33868daf7"
+      DeviceIndex: "1"
+      DeleteOnTermination: false
+  EC2SecurityGroupEgress:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupEgress"
+    DeletionPolicy: "Retain"
+    Properties:
+      CidrIp: "0.0.0.0/0"
+      IpProtocol: "-1"
+      FromPort: -1
+      ToPort: -1
+      GroupId: "sg-0ee1bb10834959513"
+  LogsLogStream20260601LATEST4a015a2adc674823b9d61a12e423dfcc:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "2026/06/01/[$LATEST]4a015a2adc674823b9d61a12e423dfcc"
+      LogGroupName: "/aws/lambda/data-generator"
+  EC2SecurityGroupEgressHY:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupEgress"
+    DeletionPolicy: "Retain"
+    Properties:
+      CidrIp: "0.0.0.0/0"
+      IpProtocol: "tcp"
+      FromPort: 80
+      ToPort: 80
+      GroupId: "sg-0ee1bb10834959513"
+  EC2SubnetNetworkAclAssociationFg:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkAclId: "acl-0369ff843071c0f4f"
+      SubnetId: "subnet-06f318b611b490124"
+  EC2VolumeAttachmentDk:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VolumeAttachment"
+    DeletionPolicy: "Retain"
+    Properties:
+      VolumeId: "vol-0cf5628080ad37f5a"
+      InstanceId: "i-03b27e32066b70bcf"
+      Device: "/dev/sda1"
+      EbsCardIndex: 0
+  EC2SubnetNetworkAclAssociationBY:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    DeletionPolicy: "Retain"
+    Properties:
+      NetworkAclId: "acl-0369ff843071c0f4f"
+      SubnetId: "subnet-08e742a5a1dd1e190"
+  LogsLogStream20260528LATESTcc4ca6d9606f4e3e95bf1660d6d01927:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "2026/05/28/[$LATEST]cc4ca6d9606f4e3e95bf1660d6d01927"
+      LogGroupName: "/aws/lambda/data-generator"
+  EC2InstanceConnectEndpoint:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::InstanceConnectEndpoint"
+    DeletionPolicy: "Retain"
+    Properties:
+      PreserveClientIp: false
+      SubnetId: "subnet-08e742a5a1dd1e190"
+      SecurityGroupIds:
+      - "sg-04fdc8982132bc0a6"
+      Tags:
+      - Value: "ec2-connect-endpoint"
+        Key: "Name"
+  EC2VPC:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPC"
+    DeletionPolicy: "Retain"
+    Properties:
+      CidrBlock: "10.0.0.0/24"
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+      EnableDnsHostnames: false
+      Tags:
+      - Value: "vpc-shopin-apac"
+        Key: "Name"
+  EC2RouteTable:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::RouteTable"
+    DeletionPolicy: "Retain"
+    Properties:
+      VpcId: "vpc-02300d2404d871e5c"
+      Tags:
+      - Value: "private-route-table"
+        Key: "Name"
+  EC2SecurityGroupDr:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupDescription: "default VPC security group"
+      GroupName: "default"
+      VpcId: "vpc-02300d2404d871e5c"
+      SecurityGroupIngress:
+      - IpProtocol: "-1"
+        FromPort: -1
+        SourceSecurityGroupId: "sg-06f1f97a38e721f6c"
+        ToPort: -1
+        SourceSecurityGroupOwnerId: "279867550341"
+      SecurityGroupEgress:
+      - CidrIp: "0.0.0.0/0"
+        IpProtocol: "-1"
+        FromPort: -1
+        ToPort: -1
+  EC2SecurityGroupEgressPW:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::SecurityGroupEgress"
+    DeletionPolicy: "Retain"
+    Properties:
+      IpProtocol: "tcp"
+      DestinationSecurityGroupId: "sg-0ee1bb10834959513"
+      FromPort: 22
+      ToPort: 22
+      GroupId: "sg-04fdc8982132bc0a6"
